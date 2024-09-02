@@ -120,4 +120,46 @@
 
    通过以上步骤，交换机能够动态学习和更新 MAC 地址表，从而实现高效的数据帧转发。
 
-5.
+5. ### Plan
+   1. Use the `subprocess` module to execute the `ip link show` command.
+   2. Capture the output and decode it from bytes to a string.
+   3. Parse the output to extract relevant information about network interfaces.
+
+   ### Code
+   ```python
+   import subprocess
+   import re
+
+   def get_ip_link_show():
+       result = subprocess.run(['ip', 'link', 'show'], capture_output=True, text=True)
+       return result.stdout
+
+   def parse_ip_link_show(output):
+       interfaces = []
+       interface = {}
+       for line in output.splitlines():
+           if re.match(r'^\d+:', line):
+               if interface:
+                   interfaces.append(interface)
+               interface = {}
+               parts = line.split(': ', 2)
+               interface['index'] = parts[0]
+               interface['name'] = parts[1].split('@')[0]
+               interface['flags'] = parts[2].strip()
+           elif 'link/' in line:
+               parts = line.split()
+               interface['type'] = parts[0]
+               interface['mac'] = parts[1]
+               interface['state'] = parts[2] if len(parts) > 2 else None
+       if interface:
+           interfaces.append(interface)
+       return interfaces
+
+   if __name__ == "__main__":
+       output = get_ip_link_show()
+       interfaces = parse_ip_link_show(output)
+       for iface in interfaces:
+           print(iface)
+   ```
+
+   This code will parse the output of `ip link show` and print a list of dictionaries, each containing information about a network interface.
